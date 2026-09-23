@@ -22,63 +22,34 @@ A personal garden planning app for tracking your yard layout, plantings, and gro
 
 ## Install on Rampey Server (Windows 11 + Docker Desktop)
 
-Gardeneus can run as a Docker container on Rampey Server. The SQLite database should be stored outside the container so garden data survives container rebuilds and upgrades.
+Gardeneus includes a Docker Compose configuration for Rampey Server. The SQLite database is stored in the local `data` directory so garden data survives container rebuilds and upgrades.
 
-### 1. Open PowerShell and create the app directory
+### 1. Clone the repository
+
+Open PowerShell:
 
 ```powershell
 New-Item -ItemType Directory -Force C:\Docker\GardenAssistant
 Set-Location C:\Docker\GardenAssistant
-```
-
-### 2. Clone the repository
-
-```powershell
 git clone https://github.com/jrampey/GardenAssistant.git .
 ```
 
-If the repository is already cloned, update it instead:
+If it is already cloned:
 
 ```powershell
+Set-Location C:\Docker\GardenAssistant
 git pull
 ```
 
-### 3. Create persistent database storage
+### 2. Start GardenAssistant
 
 ```powershell
-New-Item -ItemType Directory -Force .\data
+docker compose up -d --build
 ```
 
-Gardeneus stores its SQLite database at:
+Docker Compose will build the image, create the `gardenassistant` container, expose port 3000, mount `./data` at `/app/data`, and configure the container to restart unless manually stopped.
 
-```text
-./data/garden.db
-```
-
-### 4. Build the Docker image
-
-From `C:\Docker\GardenAssistant`:
-
-```powershell
-docker build -t gardenassistant .
-```
-
-The first build may take several minutes because the image installs the build tools required by `better-sqlite3`.
-
-### 5. Start Gardeneus
-
-```powershell
-docker run -d `
-  --name gardenassistant `
-  --restart unless-stopped `
-  -p 3000:3000 `
-  -v "C:\Docker\GardenAssistant\data:/app/data" `
-  gardenassistant
-```
-
-The container is configured to restart automatically with Docker.
-
-### 6. Open the app
+### 3. Open the app
 
 On Rampey Server:
 
@@ -92,7 +63,7 @@ From another device on the home network:
 http://RAMPEY-SERVER:3000
 ```
 
-If hostname resolution is unavailable, use Rampey Server's LAN IP address:
+If hostname resolution is unavailable:
 
 ```text
 http://<RAMPEY-SERVER-IP>:3000
@@ -100,45 +71,59 @@ http://<RAMPEY-SERVER-IP>:3000
 
 On first run, Gardeneus creates `data/garden.db` and seeds the plant library. Configure your growing zone and frost dates in **Settings**.
 
-### Check container status
+### Container management
+
+Check status:
 
 ```powershell
-docker ps --filter "name=gardenassistant"
+docker compose ps
 ```
 
-View application logs:
+View logs:
 
 ```powershell
-docker logs -f gardenassistant
+docker compose logs -f
 ```
 
-### Stop / start / restart
+Restart:
 
 ```powershell
-docker stop gardenassistant
-docker start gardenassistant
-docker restart gardenassistant
+docker compose restart
 ```
 
-### Update Gardeneus
+Stop:
 
-From PowerShell:
+```powershell
+docker compose down
+```
+
+Start again:
+
+```powershell
+docker compose up -d
+```
+
+### Update GardenAssistant
 
 ```powershell
 Set-Location C:\Docker\GardenAssistant
 git pull
-docker stop gardenassistant
-docker rm gardenassistant
-docker build -t gardenassistant .
-docker run -d `
-  --name gardenassistant `
-  --restart unless-stopped `
-  -p 3000:3000 `
-  -v "C:\Docker\GardenAssistant\data:/app/data" `
-  gardenassistant
+docker compose up -d --build
 ```
 
-The `data` directory remains on Rampey Server, so rebuilding the container does not delete the garden database.
+Your SQLite database remains in `C:\Docker\GardenAssistant\data`, so rebuilding or replacing the container does not delete your garden data.
+
+### Fresh rebuild
+
+If you need to force a completely clean image rebuild:
+
+```powershell
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+```
+
+Do **not** delete the `data` directory unless you intentionally want to remove the GardenAssistant database.
 
 ## Local Development
 
