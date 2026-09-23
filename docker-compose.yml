@@ -1,0 +1,12 @@
+services:
+  gardenassistant:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gardenassistant:latest
+    container_name: gardenassistant
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
