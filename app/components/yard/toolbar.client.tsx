@@ -151,7 +151,7 @@ export function Toolbar({
   const [expanded, setExpanded] = React.useState(false);
 
   return (
-    <div className={`absolute left-2 top-2 sm:top-1/2 sm:-translate-y-1/2 z-20 flex flex-col gap-1 max-h-[calc(100%-1rem)] overflow-y-auto overscroll-contain bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg border border-earth-200 dark:border-gray-700 shadow-md p-1.5 transition-all ${expanded ? "min-w-[160px]" : ""}`}>
+    <div className={`fixed left-2 top-[calc(env(safe-area-inset-top)+0.5rem)] sm:absolute sm:top-1/2 sm:-translate-y-1/2 z-40 flex flex-col gap-1 max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] overflow-y-auto overscroll-contain bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg border border-earth-200 dark:border-gray-700 shadow-md p-1.5 transition-all ${expanded ? "min-w-[160px]" : ""}`}>
       {/* Expand / collapse toggle */}
       <button
         type="button"
