@@ -1050,6 +1050,75 @@ export function YardEditor({
     };
   }, [elements, yard.widthFt, yard.heightFt, activeTool]);
 
+  // --- Mobile touch: one-finger pan on empty grid / Hand tool ---
+  // Mouse interactions above remain unchanged for desktop. On touch devices we
+  // intentionally pan only from empty canvas (or anywhere while Hand is active)
+  // so tapping/dragging a bed does not unexpectedly move the viewport.
+  React.useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    let touchStart: { x: number; y: number; viewX: number; viewY: number } | null = null;
+    let touchMoved = false;
+
+    function handleTouchStart(e: TouchEvent) {
+      if (e.touches.length !== 1) return;
+      const elementId = findElementId(e.target);
+      const resizeHandle = findResizeHandle(e.target);
+      const canPan = activeTool === "hand" ||
+        (activeTool === "select" && !elementId && !resizeHandle);
+      if (!canPan) return;
+
+      const touch = e.touches[0];
+      touchStart = {
+        x: touch.clientX,
+        y: touch.clientY,
+        viewX: panZoom.viewX,
+        viewY: panZoom.viewY,
+      };
+      touchMoved = false;
+      // Stop iOS/Safari from turning the canvas gesture into page scrolling.
+      e.preventDefault();
+    }
+
+    function handleTouchMove(e: TouchEvent) {
+      if (!touchStart || e.touches.length !== 1) return;
+      e.preventDefault();
+
+      const touch = e.touches[0];
+      const rect = svg.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      const dx = touch.clientX - touchStart.x;
+      const dy = touch.clientY - touchStart.y;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) touchMoved = true;
+
+      panZoom.setView(
+        touchStart.viewX - (dx / rect.width) * panZoom.viewWidth,
+        touchStart.viewY - (dy / rect.height) * panZoom.viewHeight,
+      );
+    }
+
+    function handleTouchEnd(e: TouchEvent) {
+      if (!touchStart) return;
+      if (touchMoved) e.preventDefault();
+      touchStart = null;
+      touchMoved = false;
+    }
+
+    svg.addEventListener("touchstart", handleTouchStart, { passive: false });
+    svg.addEventListener("touchmove", handleTouchMove, { passive: false });
+    svg.addEventListener("touchend", handleTouchEnd, { passive: false });
+    svg.addEventListener("touchcancel", handleTouchEnd, { passive: false });
+
+    return () => {
+      svg.removeEventListener("touchstart", handleTouchStart);
+      svg.removeEventListener("touchmove", handleTouchMove);
+      svg.removeEventListener("touchend", handleTouchEnd);
+      svg.removeEventListener("touchcancel", handleTouchEnd);
+    };
+  }, [activeTool, panZoom.viewX, panZoom.viewY, panZoom.viewWidth, panZoom.viewHeight]);
+
   // --- Grid click: place element with shape tool ---
 
   async function handleGridClick(e: React.MouseEvent<SVGSVGElement>) {
@@ -1126,6 +1195,7 @@ export function YardEditor({
         height="100%"
         viewBox={panZoom.viewBox}
         className={cursor}
+        style={{ touchAction: "none" }}
         onMouseDown={handleSvgMouseDown}
         onClick={handleGridClick}
       >
