@@ -1050,92 +1050,6 @@ export function YardEditor({
     };
   }, [elements, yard.widthFt, yard.heightFt, activeTool]);
 
-  // --- Mobile touch: direct one-finger canvas panning ---
-  // Use refs so the touch listeners stay attached for the full gesture instead
-  // of being torn down/re-added on every viewBox update (which feels sticky on iOS).
-  const mobilePanViewRef = React.useRef({
-    viewX: panZoom.viewX,
-    viewY: panZoom.viewY,
-    viewWidth: panZoom.viewWidth,
-    viewHeight: panZoom.viewHeight,
-  });
-  mobilePanViewRef.current = {
-    viewX: panZoom.viewX,
-    viewY: panZoom.viewY,
-    viewWidth: panZoom.viewWidth,
-    viewHeight: panZoom.viewHeight,
-  };
-  const mobileToolRef = React.useRef(activeTool);
-  mobileToolRef.current = activeTool;
-
-  React.useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return;
-
-    let touchStart: {
-      x: number;
-      y: number;
-      viewX: number;
-      viewY: number;
-      viewWidth: number;
-      viewHeight: number;
-    } | null = null;
-
-    function handleTouchStart(e: TouchEvent) {
-      if (e.touches.length !== 1) return;
-      const elementId = findElementId(e.target);
-      const resizeHandle = findResizeHandle(e.target);
-      const tool = mobileToolRef.current;
-      const canPan = tool === "hand" || (tool === "select" && !elementId && !resizeHandle);
-      if (!canPan) return;
-
-      const touch = e.touches[0];
-      const view = mobilePanViewRef.current;
-      touchStart = {
-        x: touch.clientX,
-        y: touch.clientY,
-        viewX: view.viewX,
-        viewY: view.viewY,
-        viewWidth: view.viewWidth,
-        viewHeight: view.viewHeight,
-      };
-      e.preventDefault();
-    }
-
-    function handleTouchMove(e: TouchEvent) {
-      if (!touchStart || e.touches.length !== 1) return;
-      e.preventDefault();
-      const touch = e.touches[0];
-      const rect = svg.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-
-      // 1:1 finger tracking in screen space makes the large yard feel natural
-      // on a phone, while setView continues to clamp to the yard bounds.
-      const dx = touch.clientX - touchStart.x;
-      const dy = touch.clientY - touchStart.y;
-      panZoom.setView(
-        touchStart.viewX - (dx / rect.width) * touchStart.viewWidth,
-        touchStart.viewY - (dy / rect.height) * touchStart.viewHeight,
-      );
-    }
-
-    function handleTouchEnd() {
-      touchStart = null;
-    }
-
-    svg.addEventListener("touchstart", handleTouchStart, { passive: false });
-    svg.addEventListener("touchmove", handleTouchMove, { passive: false });
-    svg.addEventListener("touchend", handleTouchEnd, { passive: false });
-    svg.addEventListener("touchcancel", handleTouchEnd, { passive: false });
-
-    return () => {
-      svg.removeEventListener("touchstart", handleTouchStart);
-      svg.removeEventListener("touchmove", handleTouchMove);
-      svg.removeEventListener("touchend", handleTouchEnd);
-      svg.removeEventListener("touchcancel", handleTouchEnd);
-    };
-  }, []);
-
   // --- Grid click: place element with shape tool ---
 
   async function handleGridClick(e: React.MouseEvent<SVGSVGElement>) {
@@ -1212,7 +1126,6 @@ export function YardEditor({
         height="100%"
         viewBox={panZoom.viewBox}
         className={cursor}
-        style={{ touchAction: "none", WebkitUserSelect: "none", userSelect: "none" }}
         onMouseDown={handleSvgMouseDown}
         onClick={handleGridClick}
       >
